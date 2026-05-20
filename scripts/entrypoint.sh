@@ -81,6 +81,46 @@ require_env() {
   [ -n "$value" ] || die "$name is required"
 }
 
+base64_urlsafe_no_padding() {
+  printf '%s' "$1" | base64 | tr -d '\n' | tr '+/' '-_' | sed 's/=*$//'
+}
+
+url_encode() {
+  jq -rn --arg value "$1" '$value | @uri'
+}
+
+format_url_host() {
+  case "$1" in
+    \[*\]) printf '%s' "$1" ;;
+    *:*) printf '[%s]' "$1" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+print_shadowsocks_url() {
+  SS_URL_HOST="${SS_URL_HOST:-127.0.0.1}"
+  SS_URL_NAME="${SS_URL_NAME:-cf-warp-shadowsocks}"
+
+  userinfo="$(base64_urlsafe_no_padding "$SS_METHOD:$SS_PASSWORD")"
+  url_host="$(format_url_host "$SS_URL_HOST")"
+  url_name="$(url_encode "$SS_URL_NAME")"
+
+  log "shadowsocks URL: ss://$userinfo@$url_host:$SS_PORT#$url_name"
+}
+
+print_socks_url() {
+  SOCKS_URL_HOST="${SOCKS_URL_HOST:-${SS_URL_HOST:-127.0.0.1}}"
+  url_host="$(format_url_host "$SOCKS_URL_HOST")"
+
+  if [ -n "${SOCKS_USERNAME:-}" ]; then
+    username="$(url_encode "$SOCKS_USERNAME")"
+    password="$(url_encode "$SOCKS_PASSWORD")"
+    log "socks5 URL: socks5://$username:$password@$url_host:$SOCKS_PORT"
+  else
+    log "socks5 URL: socks5://$url_host:$SOCKS_PORT"
+  fi
+}
+
 render_config() {
   load_warp_profile
 
@@ -90,9 +130,19 @@ render_config() {
   SS_PORT="${SS_PORT:-8388}"
   SS_METHOD="${SS_METHOD:-chacha20-ietf-poly1305}"
   SS_NETWORK="${SS_NETWORK:-}"
+  SOCKS_LISTEN="${SOCKS_LISTEN:-::}"
+  SOCKS_PORT="${SOCKS_PORT:-1080}"
+  SOCKS_USERNAME="${SOCKS_USERNAME:-}"
+  SOCKS_PASSWORD="${SOCKS_PASSWORD:-}"
   WARP_MTU="${WARP_MTU:-1280}"
 
   require_env SS_PASSWORD
+
+  if [ -n "$SOCKS_USERNAME" ] || [ -n "$SOCKS_PASSWORD" ]; then
+    require_env SOCKS_USERNAME
+    require_env SOCKS_PASSWORD
+  fi
+
   require_env WARP_PRIVATE_KEY
   require_env WARP_LOCAL_ADDRESS
   require_env WARP_PEER_PUBLIC_KEY
@@ -108,6 +158,10 @@ render_config() {
     --arg ss_method "$SS_METHOD" \
     --arg ss_password "$SS_PASSWORD" \
     --arg ss_network "$SS_NETWORK" \
+    --arg socks_listen "$SOCKS_LISTEN" \
+    --arg socks_port "$SOCKS_PORT" \
+    --arg socks_username "$SOCKS_USERNAME" \
+    --arg socks_password "$SOCKS_PASSWORD" \
     --arg warp_server "$WARP_SERVER" \
     --arg warp_server_port "$WARP_SERVER_PORT" \
     --arg warp_private_key "$WARP_PRIVATE_KEY" \
@@ -132,6 +186,13 @@ render_config() {
             method: $ss_method,
             password: $ss_password
           } + if ($ss_network | length) > 0 then { network: $ss_network } else {} end)
+          ,
+          ({
+            type: "socks",
+            tag: "socks-in",
+            listen: $socks_listen,
+            listen_port: ($socks_port | tonumber)
+          } + if ($socks_username | length) > 0 then { users: [{ username: $socks_username, password: $socks_password }] } else {} end)
         ],
         endpoints: [
           ({
@@ -197,6 +258,8 @@ case "${1:-run}" in
     ;;
   run|sing-box)
     render_config
+    print_shadowsocks_url
+    print_socks_url
     exec sing-box run -c "${CONFIG_PATH:-/etc/sing-box/config.json}"
     ;;
   *)

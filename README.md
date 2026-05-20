@@ -1,6 +1,6 @@
-# Cloudflare WARP to Shadowsocks
+# Cloudflare WARP to Shadowsocks and SOCKS5
 
-This runs a local Shadowsocks server and sends all proxied outbound traffic through Cloudflare WARP using sing-box's user-space WireGuard endpoint. It does not require a privileged container or host WireGuard setup.
+This runs local Shadowsocks and SOCKS5 proxy servers and sends all proxied outbound traffic through Cloudflare WARP using sing-box's user-space WireGuard endpoint. It does not require a privileged container or host WireGuard setup.
 
 ## Files
 
@@ -38,7 +38,21 @@ Your Shadowsocks client should use:
 - Method: the `SS_METHOD` value from `.env`, default `chacha20-ietf-poly1305`
 - Password: the `SS_PASSWORD` value from `.env`
 
-By default Docker only publishes the proxy on localhost. To expose it to your LAN, set `SS_BIND_HOST=0.0.0.0` in `.env` and restart the service.
+Your SOCKS5 client should use:
+
+- Server: `127.0.0.1`
+- Port: the `SOCKS_PORT` value from `.env`, default `1080`
+- Username/password: blank by default, or the `SOCKS_USERNAME` and `SOCKS_PASSWORD` values from `.env`
+
+By default Docker only publishes both proxies on localhost. To expose them to your LAN, set `SS_BIND_HOST=0.0.0.0` and/or `SOCKS_BIND_HOST=0.0.0.0` in `.env` and restart the service.
+
+The service prints `ss://` and `socks5://` connection URLs at startup:
+
+```sh
+docker compose logs warp-shadowsocks
+```
+
+For LAN use, also set `SS_URL_HOST` and `SOCKS_URL_HOST` in `.env` to the Docker host's LAN IP so the printed URLs are directly usable. These URLs may include proxy credentials, so treat container logs as sensitive.
 
 ## Operations
 

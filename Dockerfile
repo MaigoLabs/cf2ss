@@ -33,7 +33,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 USER proxy
 WORKDIR /var/lib/proxy
 
-EXPOSE 8388/tcp 8388/udp
+EXPOSE 8388/tcp 8388/udp 1080/tcp 1080/udp
 
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["run"]

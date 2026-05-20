@@ -10,6 +10,8 @@ services:
     ports:
       - "${SS_BIND_HOST:-127.0.0.1}:${SS_PORT:-8388}:${SS_PORT:-8388}/tcp"
       - "${SS_BIND_HOST:-127.0.0.1}:${SS_PORT:-8388}:${SS_PORT:-8388}/udp"
+      - "${SOCKS_BIND_HOST:-127.0.0.1}:${SOCKS_PORT:-1080}:${SOCKS_PORT:-1080}/tcp"
+      - "${SOCKS_BIND_HOST:-127.0.0.1}:${SOCKS_PORT:-1080}:${SOCKS_PORT:-1080}/udp"
     environment:
       CONFIG_PATH: /tmp/sing-box/config.json
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -17,6 +19,13 @@ services:
       SS_PORT: ${SS_PORT:-8388}
       SS_METHOD: ${SS_METHOD:-chacha20-ietf-poly1305}
       SS_PASSWORD: ${SS_PASSWORD:?set SS_PASSWORD in .env}
+      SS_URL_HOST: ${SS_URL_HOST:-127.0.0.1}
+      SS_URL_NAME: ${SS_URL_NAME:-cf-warp-shadowsocks}
+      SOCKS_LISTEN: "::"
+      SOCKS_PORT: ${SOCKS_PORT:-1080}
+      SOCKS_USERNAME: ${SOCKS_USERNAME:-}
+      SOCKS_PASSWORD: ${SOCKS_PASSWORD:-}
+      SOCKS_URL_HOST: ${SOCKS_URL_HOST:-}
       WARP_CONF: /warp/wgcf-profile.conf
       WARP_ACCOUNT: /warp/wgcf-account.toml
       WARP_MTU: ${WARP_MTU:-1280}
