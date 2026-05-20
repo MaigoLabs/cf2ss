@@ -1,0 +1,46 @@
+services:
+  warp-shadowsocks:
+    build:
+      context: .
+      network: host
+    image: cf-warp-shadowsocks:local
+    container_name: cf-warp-shadowsocks
+    user: "${PUID:-1000}:${PGID:-1000}"
+    restart: unless-stopped
+    ports:
+      - "${SS_BIND_HOST:-127.0.0.1}:${SS_PORT:-8388}:${SS_PORT:-8388}/tcp"
+      - "${SS_BIND_HOST:-127.0.0.1}:${SS_PORT:-8388}:${SS_PORT:-8388}/udp"
+    environment:
+      CONFIG_PATH: /tmp/sing-box/config.json
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SS_LISTEN: "::"
+      SS_PORT: ${SS_PORT:-8388}
+      SS_METHOD: ${SS_METHOD:-chacha20-ietf-poly1305}
+      SS_PASSWORD: ${SS_PASSWORD:?set SS_PASSWORD in .env}
+      WARP_CONF: /warp/wgcf-profile.conf
+      WARP_ACCOUNT: /warp/wgcf-account.toml
+      WARP_MTU: ${WARP_MTU:-1280}
+    volumes:
+      - ./warp:/warp:ro
+    healthcheck:
+      test: ["CMD", "sing-box", "check", "-c", "/tmp/sing-box/config.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  warp-register:
+    build:
+      context: .
+      network: host
+    image: cf-warp-shadowsocks:local
+    profiles: ["init"]
+    user: "0:0"
+    command: ["register-warp"]
+    environment:
+      WARP_DIR: /warp
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    volumes:
+      - ./warp:/warp
+    restart: "no"
