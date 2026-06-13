@@ -1,3 +1,9 @@
+> [!WARNING]
+>
+> Codex made this, which means that it may not meet our code quality standards.
+>
+> It was only for internal use, but we open sourced it because someone might find it useful in the future.
+
 # Cloudflare WARP to Shadowsocks and SOCKS5
 
 This runs local Shadowsocks and SOCKS5 proxy servers and sends all proxied outbound traffic through Cloudflare WARP using sing-box's user-space WireGuard endpoint. It does not require a privileged container or host WireGuard setup.
